@@ -1,0 +1,1148 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyMUB/e/I9NkkKIwC1abvEpd",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/saugata-malakar/Summer-Analytics-2021-IIT-Guwahati/blob/main/severity%20predicition\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 2,
+      "metadata": {
+        "id": "rrWaXggk12ia"
+      },
+      "outputs": [],
+      "source": [
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import seaborn as sns\n",
+        "from sklearn.model_selection import train_test_split, cross_val_score\n",
+        "from sklearn.preprocessing import StandardScaler, LabelEncoder\n",
+        "from sklearn.ensemble import RandomForestClassifier\n",
+        "from sklearn.metrics import classification_report, confusion_matrix, accuracy_score"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "try:\n",
+        "    data = pd.read_csv('/content/Data Sheet - Sheet1.csv', encoding='ISO-8859-1', engine='python')\n",
+        "except Exception as e:\n",
+        "    print(f\"Error reading CSV file: {e}\")\n",
+        "\n",
+        "# Display the first few rows of the dataset\n",
+        "print(data.head())"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "mTBL0OsF5PJn",
+        "outputId": "ff6e22f6-93a3-4ed0-e755-60cf1963b2bf"
+      },
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "  Crash_Severity  Vehicle_Speed  Crash_Time  Age  Gender   Vehicle_Type  \\\n",
+            "0   Minor injury            107          11   27    Male  Heavy Vehicle   \n",
+            "1   Minor injury             27          16   39    Male            Car   \n",
+            "2   Minor injury             87          14   42  Female            Car   \n",
+            "3   Minor injury             43           3   60  Female  Heavy Vehicle   \n",
+            "4   Minor injury             72           8   70    Male            T.W   \n",
+            "\n",
+            "   Number_of_Lanes  Lane_Width Road_Type Alcohol_Consumption Crash_Type  \\\n",
+            "0                2    3.484386     Urban                 Yes   Rear-end   \n",
+            "1                2    3.293091     Rural                 Yes   Rear-end   \n",
+            "2                3    3.218911     Urban                  No   Rear-end   \n",
+            "3                2    3.113012     Rural                  No   Rear-end   \n",
+            "4                3    3.106580     Urban                 Yes   Rear-end   \n",
+            "\n",
+            "  Seatbelt_Usage  Speed_Limit Road_Surface_Condition  \n",
+            "0             No           30                    Icy  \n",
+            "1            Yes          110                    Dry  \n",
+            "2             No           59                    Dry  \n",
+            "3             No           73                    Wet  \n",
+            "4            Yes           42                    Wet  \n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data.head(10)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 383
+        },
+        "id": "i1PTJN--5FQ5",
+        "outputId": "41b5a902-a0bc-45be-8f90-46a0ef41546d"
+      },
+      "execution_count": 8,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "  Crash_Severity  Vehicle_Speed  Crash_Time  Age  Gender   Vehicle_Type  \\\n",
+              "0   Minor injury            107          11   27    Male  Heavy Vehicle   \n",
+              "1   Minor injury             27          16   39    Male            Car   \n",
+              "2   Minor injury             87          14   42  Female            Car   \n",
+              "3   Minor injury             43           3   60  Female  Heavy Vehicle   \n",
+              "4   Minor injury             72           8   70    Male            T.W   \n",
+              "5   Minor injury             15          20   49  Female            Car   \n",
+              "6   Minor injury             62           6   70    Male            Car   \n",
+              "7   Minor injury             96          17   69    Male            Car   \n",
+              "8   Minor injury             85           8   40  Female            Car   \n",
+              "9   Minor injury            120          21   18  Female            Car   \n",
+              "\n",
+              "   Number_of_Lanes  Lane_Width Road_Type Alcohol_Consumption Crash_Type  \\\n",
+              "0                2    3.484386     Urban                 Yes   Rear-end   \n",
+              "1                2    3.293091     Rural                 Yes   Rear-end   \n",
+              "2                3    3.218911     Urban                  No   Rear-end   \n",
+              "3                2    3.113012     Rural                  No   Rear-end   \n",
+              "4                3    3.106580     Urban                 Yes   Rear-end   \n",
+              "5                3    3.387430     Rural                 Yes   Rear-end   \n",
+              "6                1    3.464110     Urban                  No    Head-on   \n",
+              "7                2    3.199897     Rural                 Yes    Head-on   \n",
+              "8                2    3.333741     Rural                  No    Head-on   \n",
+              "9                1    3.113678     Urban                  No   Rear-end   \n",
+              "\n",
+              "  Seatbelt_Usage  Speed_Limit Road_Surface_Condition  \n",
+              "0             No           30                    Icy  \n",
+              "1            Yes          110                    Dry  \n",
+              "2             No           59                    Dry  \n",
+              "3             No           73                    Wet  \n",
+              "4            Yes           42                    Wet  \n",
+              "5            Yes          117                    Dry  \n",
+              "6            Yes           55                    Dry  \n",
+              "7            Yes          117                    Icy  \n",
+              "8            Yes           97                    Icy  \n",
+              "9             No          100                    Dry  "
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-f0ae7e8e-cc5d-43d5-8238-97f220f58d32\" class=\"colab-df-container\">\n",
+              "    <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>Crash_Severity</th>\n",
+              "      <th>Vehicle_Speed</th>\n",
+              "      <th>Crash_Time</th>\n",
+              "      <th>Age</th>\n",
+              "      <th>Gender</th>\n",
+              "      <th>Vehicle_Type</th>\n",
+              "      <th>Number_of_Lanes</th>\n",
+              "      <th>Lane_Width</th>\n",
+              "      <th>Road_Type</th>\n",
+              "      <th>Alcohol_Consumption</th>\n",
+              "      <th>Crash_Type</th>\n",
+              "      <th>Seatbelt_Usage</th>\n",
+              "      <th>Speed_Limit</th>\n",
+              "      <th>Road_Surface_Condition</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>Minor injury</td>\n",
+              "      <td>107</td>\n",
+              "      <td>11</td>\n",
+              "      <td>27</td>\n",
+              "      <td>Male</td>\n",
+              "      <td>Heavy Vehicle</td>\n",
+              "      <td>2</td>\n",
+              "      <td>3.484386</td>\n",
+              "      <td>Urban</td>\n",
+              "      <td>Yes</td>\n",
+              "      <td>Rear-end</td>\n",
+              "      <td>No</td>\n",
+              "      <td>30</td>\n",
+              "      <td>Icy</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>Minor injury</td>\n",
+              "      <td>27</td>\n",
+              "      <td>16</td>\n",
+              "      <td>39</td>\n",
+              "      <td>Male</td>\n",
+              "      <td>Car</td>\n",
+              "      <td>2</td>\n",
+              "      <td>3.293091</td>\n",
+              "      <td>Rural</td>\n",
+              "      <td>Yes</td>\n",
+              "      <td>Rear-end</td>\n",
+              "      <td>Yes</td>\n",
+              "      <td>110</td>\n",
+              "      <td>Dry</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>Minor injury</td>\n",
+              "      <td>87</td>\n",
+              "      <td>14</td>\n",
+              "      <td>42</td>\n",
+              "      <td>Female</td>\n",
+              "      <td>Car</td>\n",
+              "      <td>3</td>\n",
+              "      <td>3.218911</td>\n",
+              "      <td>Urban</td>\n",
+              "      <td>No</td>\n",
+              "      <td>Rear-end</td>\n",
+              "      <td>No</td>\n",
+              "      <td>59</td>\n",
+              "      <td>Dry</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>Minor injury</td>\n",
+              "      <td>43</td>\n",
+              "      <td>3</td>\n",
+              "      <td>60</td>\n",
+              "      <td>Female</td>\n",
+              "      <td>Heavy Vehicle</td>\n",
+              "      <td>2</td>\n",
+              "      <td>3.113012</td>\n",
+              "      <td>Rural</td>\n",
+              "      <td>No</td>\n",
+              "      <td>Rear-end</td>\n",
+              "      <td>No</td>\n",
+              "      <td>73</td>\n",
+              "      <td>Wet</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>Minor injury</td>\n",
+              "      <td>72</td>\n",
+              "      <td>8</td>\n",
+              "      <td>70</td>\n",
+              "      <td>Male</td>\n",
+              "      <td>T.W</td>\n",
+              "      <td>3</td>\n",
+              "      <td>3.106580</td>\n",
+              "      <td>Urban</td>\n",
+              "      <td>Yes</td>\n",
+              "      <td>Rear-end</td>\n",
+              "      <td>Yes</td>\n",
+              "      <td>42</td>\n",
+              "      <td>Wet</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>5</th>\n",
+              "      <td>Minor injury</td>\n",
+              "      <td>15</td>\n",
+              "      <td>20</td>\n",
+              "      <td>49</td>\n",
+              "      <td>Female</td>\n",
+              "      <td>Car</td>\n",
+              "      <td>3</td>\n",
+              "      <td>3.387430</td>\n",
+              "      <td>Rural</td>\n",
+              "      <td>Yes</td>\n",
+              "      <td>Rear-end</td>\n",
+              "      <td>Yes</td>\n",
+              "      <td>117</td>\n",
+              "      <td>Dry</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>6</th>\n",
+              "      <td>Minor injury</td>\n",
+              "      <td>62</td>\n",
+              "      <td>6</td>\n",
+              "      <td>70</td>\n",
+              "      <td>Male</td>\n",
+              "      <td>Car</td>\n",
+              "      <td>1</td>\n",
+              "      <td>3.464110</td>\n",
+              "      <td>Urban</td>\n",
+              "      <td>No</td>\n",
+              "      <td>Head-on</td>\n",
+              "      <td>Yes</td>\n",
+              "      <td>55</td>\n",
+              "      <td>Dry</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>7</th>\n",
+              "      <td>Minor injury</td>\n",
+              "      <td>96</td>\n",
+              "      <td>17</td>\n",
+              "      <td>69</td>\n",
+              "      <td>Male</td>\n",
+              "      <td>Car</td>\n",
+              "      <td>2</td>\n",
+              "      <td>3.199897</td>\n",
+              "      <td>Rural</td>\n",
+              "      <td>Yes</td>\n",
+              "      <td>Head-on</td>\n",
+              "      <td>Yes</td>\n",
+              "      <td>117</td>\n",
+              "      <td>Icy</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>8</th>\n",
+              "      <td>Minor injury</td>\n",
+              "      <td>85</td>\n",
+              "      <td>8</td>\n",
+              "      <td>40</td>\n",
+              "      <td>Female</td>\n",
+              "      <td>Car</td>\n",
+              "      <td>2</td>\n",
+              "      <td>3.333741</td>\n",
+              "      <td>Rural</td>\n",
+              "      <td>No</td>\n",
+              "      <td>Head-on</td>\n",
+              "      <td>Yes</td>\n",
+              "      <td>97</td>\n",
+              "      <td>Icy</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>9</th>\n",
+              "      <td>Minor injury</td>\n",
+              "      <td>120</td>\n",
+              "      <td>21</td>\n",
+              "      <td>18</td>\n",
+              "      <td>Female</td>\n",
+              "      <td>Car</td>\n",
+              "      <td>1</td>\n",
+              "      <td>3.113678</td>\n",
+              "      <td>Urban</td>\n",
+              "      <td>No</td>\n",
+              "      <td>Rear-end</td>\n",
+              "      <td>No</td>\n",
+              "      <td>100</td>\n",
+              "      <td>Dry</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>\n",
+              "    <div class=\"colab-df-buttons\">\n",
+              "\n",
+              "  <div class=\"colab-df-container\">\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-f0ae7e8e-cc5d-43d5-8238-97f220f58d32')\"\n",
+              "            title=\"Convert this dataframe to an interactive table.\"\n",
+              "            style=\"display:none;\">\n",
+              "\n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\" viewBox=\"0 -960 960 960\">\n",
+              "    <path d=\"M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z\"/>\n",
+              "  </svg>\n",
+              "    </button>\n",
+              "\n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-buttons div {\n",
+              "      margin-bottom: 4px;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "    <script>\n",
+              "      const buttonEl =\n",
+              "        document.querySelector('#df-f0ae7e8e-cc5d-43d5-8238-97f220f58d32 button.colab-df-convert');\n",
+              "      buttonEl.style.display =\n",
+              "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "      async function convertToInteractive(key) {\n",
+              "        const element = document.querySelector('#df-f0ae7e8e-cc5d-43d5-8238-97f220f58d32');\n",
+              "        const dataTable =\n",
+              "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                    [key], {});\n",
+              "        if (!dataTable) return;\n",
+              "\n",
+              "        const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "          '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "          + ' to learn more about interactive tables.';\n",
+              "        element.innerHTML = '';\n",
+              "        dataTable['output_type'] = 'display_data';\n",
+              "        await google.colab.output.renderOutput(dataTable, element);\n",
+              "        const docLink = document.createElement('div');\n",
+              "        docLink.innerHTML = docLinkHtml;\n",
+              "        element.appendChild(docLink);\n",
+              "      }\n",
+              "    </script>\n",
+              "  </div>\n",
+              "\n",
+              "\n",
+              "<div id=\"df-729ad51f-6c43-4914-bebd-71552d1cd64e\">\n",
+              "  <button class=\"colab-df-quickchart\" onclick=\"quickchart('df-729ad51f-6c43-4914-bebd-71552d1cd64e')\"\n",
+              "            title=\"Suggest charts\"\n",
+              "            style=\"display:none;\">\n",
+              "\n",
+              "<svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\"viewBox=\"0 0 24 24\"\n",
+              "     width=\"24px\">\n",
+              "    <g>\n",
+              "        <path d=\"M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z\"/>\n",
+              "    </g>\n",
+              "</svg>\n",
+              "  </button>\n",
+              "\n",
+              "<style>\n",
+              "  .colab-df-quickchart {\n",
+              "      --bg-color: #E8F0FE;\n",
+              "      --fill-color: #1967D2;\n",
+              "      --hover-bg-color: #E2EBFA;\n",
+              "      --hover-fill-color: #174EA6;\n",
+              "      --disabled-fill-color: #AAA;\n",
+              "      --disabled-bg-color: #DDD;\n",
+              "  }\n",
+              "\n",
+              "  [theme=dark] .colab-df-quickchart {\n",
+              "      --bg-color: #3B4455;\n",
+              "      --fill-color: #D2E3FC;\n",
+              "      --hover-bg-color: #434B5C;\n",
+              "      --hover-fill-color: #FFFFFF;\n",
+              "      --disabled-bg-color: #3B4455;\n",
+              "      --disabled-fill-color: #666;\n",
+              "  }\n",
+              "\n",
+              "  .colab-df-quickchart {\n",
+              "    background-color: var(--bg-color);\n",
+              "    border: none;\n",
+              "    border-radius: 50%;\n",
+              "    cursor: pointer;\n",
+              "    display: none;\n",
+              "    fill: var(--fill-color);\n",
+              "    height: 32px;\n",
+              "    padding: 0;\n",
+              "    width: 32px;\n",
+              "  }\n",
+              "\n",
+              "  .colab-df-quickchart:hover {\n",
+              "    background-color: var(--hover-bg-color);\n",
+              "    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "    fill: var(--button-hover-fill-color);\n",
+              "  }\n",
+              "\n",
+              "  .colab-df-quickchart-complete:disabled,\n",
+              "  .colab-df-quickchart-complete:disabled:hover {\n",
+              "    background-color: var(--disabled-bg-color);\n",
+              "    fill: var(--disabled-fill-color);\n",
+              "    box-shadow: none;\n",
+              "  }\n",
+              "\n",
+              "  .colab-df-spinner {\n",
+              "    border: 2px solid var(--fill-color);\n",
+              "    border-color: transparent;\n",
+              "    border-bottom-color: var(--fill-color);\n",
+              "    animation:\n",
+              "      spin 1s steps(1) infinite;\n",
+              "  }\n",
+              "\n",
+              "  @keyframes spin {\n",
+              "    0% {\n",
+              "      border-color: transparent;\n",
+              "      border-bottom-color: var(--fill-color);\n",
+              "      border-left-color: var(--fill-color);\n",
+              "    }\n",
+              "    20% {\n",
+              "      border-color: transparent;\n",
+              "      border-left-color: var(--fill-color);\n",
+              "      border-top-color: var(--fill-color);\n",
+              "    }\n",
+              "    30% {\n",
+              "      border-color: transparent;\n",
+              "      border-left-color: var(--fill-color);\n",
+              "      border-top-color: var(--fill-color);\n",
+              "      border-right-color: var(--fill-color);\n",
+              "    }\n",
+              "    40% {\n",
+              "      border-color: transparent;\n",
+              "      border-right-color: var(--fill-color);\n",
+              "      border-top-color: var(--fill-color);\n",
+              "    }\n",
+              "    60% {\n",
+              "      border-color: transparent;\n",
+              "      border-right-color: var(--fill-color);\n",
+              "    }\n",
+              "    80% {\n",
+              "      border-color: transparent;\n",
+              "      border-right-color: var(--fill-color);\n",
+              "      border-bottom-color: var(--fill-color);\n",
+              "    }\n",
+              "    90% {\n",
+              "      border-color: transparent;\n",
+              "      border-bottom-color: var(--fill-color);\n",
+              "    }\n",
+              "  }\n",
+              "</style>\n",
+              "\n",
+              "  <script>\n",
+              "    async function quickchart(key) {\n",
+              "      const quickchartButtonEl =\n",
+              "        document.querySelector('#' + key + ' button');\n",
+              "      quickchartButtonEl.disabled = true;  // To prevent multiple clicks.\n",
+              "      quickchartButtonEl.classList.add('colab-df-spinner');\n",
+              "      try {\n",
+              "        const charts = await google.colab.kernel.invokeFunction(\n",
+              "            'suggestCharts', [key], {});\n",
+              "      } catch (error) {\n",
+              "        console.error('Error during call to suggestCharts:', error);\n",
+              "      }\n",
+              "      quickchartButtonEl.classList.remove('colab-df-spinner');\n",
+              "      quickchartButtonEl.classList.add('colab-df-quickchart-complete');\n",
+              "    }\n",
+              "    (() => {\n",
+              "      let quickchartButtonEl =\n",
+              "        document.querySelector('#df-729ad51f-6c43-4914-bebd-71552d1cd64e button');\n",
+              "      quickchartButtonEl.style.display =\n",
+              "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "    })();\n",
+              "  </script>\n",
+              "</div>\n",
+              "\n",
+              "    </div>\n",
+              "  </div>\n"
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "dataframe",
+              "variable_name": "data",
+              "summary": "{\n  \"name\": \"data\",\n  \"rows\": 300,\n  \"fields\": [\n    {\n      \"column\": \"Crash_Severity\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 3,\n        \"samples\": [\n          \"Minor injury\",\n          \"Major injury\",\n          \"Fatal crash\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Vehicle_Speed\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 31,\n        \"min\": 10,\n        \"max\": 120,\n        \"num_unique_values\": 105,\n        \"samples\": [\n          90,\n          116,\n          34\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Crash_Time\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 6,\n        \"min\": 0,\n        \"max\": 23,\n        \"num_unique_values\": 24,\n        \"samples\": [\n          21,\n          23,\n          11\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Age\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 18,\n        \"min\": 18,\n        \"max\": 80,\n        \"num_unique_values\": 62,\n        \"samples\": [\n          66,\n          51,\n          27\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Gender\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Female\",\n          \"Male\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Vehicle_Type\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 3,\n        \"samples\": [\n          \"Heavy Vehicle\",\n          \"Car\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Number_of_Lanes\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 1,\n        \"max\": 3,\n        \"num_unique_values\": 3,\n        \"samples\": [\n          2,\n          3\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Lane_Width\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0.14305275609361234,\n        \"min\": 3.001781,\n        \"max\": 3.497986,\n        \"num_unique_values\": 300,\n        \"samples\": [\n          3.310063,\n          3.486818\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Road_Type\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Rural\",\n          \"Urban\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Alcohol_Consumption\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\",\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Crash_Type\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Head-on\",\n          \"Rear-end\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Seatbelt_Usage\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\",\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Speed_Limit\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 26,\n        \"min\": 30,\n        \"max\": 120,\n        \"num_unique_values\": 85,\n        \"samples\": [\n          52,\n          30\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Road_Surface_Condition\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 3,\n        \"samples\": [\n          \"Icy\",\n          \"Dry\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
+            }
+          },
+          "metadata": {},
+          "execution_count": 8
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Check for missing values\n",
+        "print(data.isnull().sum())\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "xTbJ3obH5WS7",
+        "outputId": "ad581de1-3f43-4172-e76b-538a7bb84272"
+      },
+      "execution_count": 11,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Crash_Severity            0\n",
+            "Vehicle_Speed             0\n",
+            "Crash_Time                0\n",
+            "Age                       0\n",
+            "Gender                    0\n",
+            "Vehicle_Type              0\n",
+            "Number_of_Lanes           0\n",
+            "Lane_Width                0\n",
+            "Road_Type                 0\n",
+            "Alcohol_Consumption       0\n",
+            "Crash_Type                0\n",
+            "Seatbelt_Usage            0\n",
+            "Speed_Limit               0\n",
+            "Road_Surface_Condition    0\n",
+            "dtype: int64\n"
+          ]
+        }
+      ]
+    },
+    {
+      "source": [
+        "data.columns"
+      ],
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "x-jvLKr-5_bC",
+        "outputId": "2fdbad48-1a28-4470-a10e-944b87c2ca62"
+      },
+      "execution_count": 23,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Index(['Crash_Severity', 'Vehicle_Speed', 'Crash_Time', 'Age', 'Gender',\n",
+              "       'Vehicle_Type', 'Number_of_Lanes', 'Lane_Width', 'Road_Type',\n",
+              "       'Alcohol_Consumption', 'Crash_Type', 'Seatbelt_Usage', 'Speed_Limit',\n",
+              "       'Road_Surface_Condition'],\n",
+              "      dtype='object')"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 23
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data.info()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "mzLXQspZ53qw",
+        "outputId": "cb078ff4-3a21-4947-c656-8f54f0b804e6"
+      },
+      "execution_count": 25,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "RangeIndex: 300 entries, 0 to 299\n",
+            "Data columns (total 14 columns):\n",
+            " #   Column                  Non-Null Count  Dtype  \n",
+            "---  ------                  --------------  -----  \n",
+            " 0   Crash_Severity          300 non-null    object \n",
+            " 1   Vehicle_Speed           300 non-null    int64  \n",
+            " 2   Crash_Time              300 non-null    int64  \n",
+            " 3   Age                     300 non-null    int64  \n",
+            " 4   Gender                  300 non-null    object \n",
+            " 5   Vehicle_Type            300 non-null    object \n",
+            " 6   Number_of_Lanes         300 non-null    int64  \n",
+            " 7   Lane_Width              300 non-null    float64\n",
+            " 8   Road_Type               300 non-null    object \n",
+            " 9   Alcohol_Consumption     300 non-null    object \n",
+            " 10  Crash_Type              300 non-null    object \n",
+            " 11  Seatbelt_Usage          300 non-null    object \n",
+            " 12  Speed_Limit             300 non-null    int64  \n",
+            " 13  Road_Surface_Condition  300 non-null    object \n",
+            "dtypes: float64(1), int64(5), object(8)\n",
+            "memory usage: 32.9+ KB\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "print(\"Columns in DataFrame:\", data.columns.tolist())\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "KxjQSpyrbWAW",
+        "outputId": "7d70cad2-e123-426e-d97c-6ef202f8ce28"
+      },
+      "execution_count": 12,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Columns in DataFrame: ['Crash_Severity', 'Vehicle_Speed', 'Crash_Time', 'Age', 'Gender', 'Vehicle_Type', 'Number_of_Lanes', 'Lane_Width', 'Road_Type', 'Alcohol_Consumption', 'Crash_Type', 'Seatbelt_Usage', 'Speed_Limit', 'Road_Surface_Condition']\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data.columns = data.columns.str.strip()\n"
+      ],
+      "metadata": {
+        "id": "-KznDyEqbX5e"
+      },
+      "execution_count": 13,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "print(\"Cleaned Columns:\", data.columns.tolist())\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "5IEEsbDUbcRS",
+        "outputId": "135014e5-0571-4c0f-9e55-69eb4c9d5af6"
+      },
+      "execution_count": 14,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Cleaned Columns: ['Crash_Severity', 'Vehicle_Speed', 'Crash_Time', 'Age', 'Gender', 'Vehicle_Type', 'Number_of_Lanes', 'Lane_Width', 'Road_Type', 'Alcohol_Consumption', 'Crash_Type', 'Seatbelt_Usage', 'Speed_Limit', 'Road_Surface_Condition']\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "try:\n",
+        "    speed_data = data['Speed of the vehicle']  # Use the exact name from your cleaned columns\n",
+        "    print(speed_data.head())\n",
+        "except KeyError as e:\n",
+        "    print(f\"KeyError: {e}. Please check if the column name exists.\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "fBz1U342be1z",
+        "outputId": "55734821-1ab4-4f85-c439-e4d8633406c6"
+      },
+      "execution_count": 15,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "KeyError: 'Speed of the vehicle'. Please check if the column name exists.\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Display all column names in the DataFrame\n",
+        "print(\"Columns in DataFrame:\", data.columns.tolist())\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "6fF9_vpYcmtu",
+        "outputId": "f3e7aa02-96f3-4566-a12e-c2f1975d06a3"
+      },
+      "execution_count": 16,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Columns in DataFrame: ['Crash_Severity', 'Vehicle_Speed', 'Crash_Time', 'Age', 'Gender', 'Vehicle_Type', 'Number_of_Lanes', 'Lane_Width', 'Road_Type', 'Alcohol_Consumption', 'Crash_Type', 'Seatbelt_Usage', 'Speed_Limit', 'Road_Surface_Condition']\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Rename the specific column\n",
+        "data.rename(columns={'Vehicle Speed': 'Speed of the vehicle'}, inplace=True)\n",
+        "\n",
+        "# Verify the change\n",
+        "print(data.columns.tolist())\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "uWkpOZJ9c8_M",
+        "outputId": "8945d001-5e61-4649-c8be-94ecc166c29e"
+      },
+      "execution_count": 20,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['Crash_Severity', 'Vehicle_Speed', 'Crash_Time', 'Age', 'Gender', 'Vehicle_Type', 'Number_of_Lanes', 'Lane_Width', 'Road_Type', 'Alcohol_Consumption', 'Crash_Type', 'Seatbelt_Usage', 'Speed_Limit', 'Road_Surface_Condition']\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data.columns\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "WUYoZgY5eRyD",
+        "outputId": "32c85713-74c3-4b14-97d9-d13837a0d39e"
+      },
+      "execution_count": 26,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Index(['Crash_Severity', 'Vehicle_Speed', 'Crash_Time', 'Age', 'Gender',\n",
+              "       'Vehicle_Type', 'Number_of_Lanes', 'Lane_Width', 'Road_Type',\n",
+              "       'Alcohol_Consumption', 'Crash_Type', 'Seatbelt_Usage', 'Speed_Limit',\n",
+              "       'Road_Surface_Condition'],\n",
+              "      dtype='object')"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 26
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "liBYIuINeTvX"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Fill missing values with median for numerical columns\n",
+        "data['Vehicle_Speed'].fillna(data['Vehicle_Speed'].median(), inplace=True)\n",
+        "data['Age'].fillna(data['Age'].median(), inplace=True)\n",
+        "\n",
+        "# Drop rows with any remaining missing values\n",
+        "data.dropna(inplace=True)\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ko4cjpuYejEG",
+        "outputId": "2cb6a828-83e9-4a62-cec1-c00eb2a40d9c"
+      },
+      "execution_count": 27,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "<ipython-input-27-250814a9cff6>:2: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.\n",
+            "The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.\n",
+            "\n",
+            "For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.\n",
+            "\n",
+            "\n",
+            "  data['Vehicle_Speed'].fillna(data['Vehicle_Speed'].median(), inplace=True)\n",
+            "<ipython-input-27-250814a9cff6>:3: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.\n",
+            "The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.\n",
+            "\n",
+            "For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.\n",
+            "\n",
+            "\n",
+            "  data['Age'].fillna(data['Age'].median(), inplace=True)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Example: Encoding 'Gender' and 'Alcohol_Consumption'\n",
+        "data['Gender'] = data['Gender'].map({'Male': 1, 'Female': 0})\n",
+        "data['Alcohol_Consumption'] = data['Alcohol_Consumption'].map({'Yes': 1, 'No': 0})\n",
+        "\n",
+        "# For other categorical variables with multiple categories, use one-hot encoding\n",
+        "data = pd.get_dummies(data, columns=['Vehicle_Type', 'Crash_Type', 'Road_Surface_Condition'], drop_first=True)\n"
+      ],
+      "metadata": {
+        "id": "8D8u8Xdzej26"
+      },
+      "execution_count": 28,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Example: Encoding 'Gender' and 'Alcohol_Consumption'\n",
+        "data['Gender'] = data['Gender'].map({'Male': 1, 'Female': 0})\n",
+        "data['Alcohol_Consumption'] = data['Alcohol_Consumption'].map({'Yes': 1, 'No': 0})\n",
+        "\n",
+        "# For other categorical variables with multiple categories, use one-hot encoding\n",
+        "data = pd.get_dummies(data, columns=['Vehicle_Type', 'Crash_Type', 'Road_Surface_Condition'], drop_first=True)\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 408
+        },
+        "id": "zKLqE1WDempH",
+        "outputId": "a26027d1-db1c-4509-b27f-40cd7948346a"
+      },
+      "execution_count": 29,
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "KeyError",
+          "evalue": "\"None of [Index(['Vehicle_Type', 'Crash_Type', 'Road_Surface_Condition'], dtype='object')] are in the [columns]\"",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mKeyError\u001b[0m                                  Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-29-e5ff937f9244>\u001b[0m in \u001b[0;36m<cell line: 6>\u001b[0;34m()\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m \u001b[0;31m# For other categorical variables with multiple categories, use one-hot encoding\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 6\u001b[0;31m \u001b[0mdata\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mpd\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mget_dummies\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mdata\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcolumns\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Vehicle_Type'\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m'Crash_Type'\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m'Road_Surface_Condition'\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mdrop_first\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mTrue\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/reshape/encoding.py\u001b[0m in \u001b[0;36mget_dummies\u001b[0;34m(data, prefix, prefix_sep, dummy_na, columns, sparse, drop_first, dtype)\u001b[0m\n\u001b[1;32m    167\u001b[0m             \u001b[0;32mraise\u001b[0m \u001b[0mTypeError\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"Input must be a list-like for parameter `columns`\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    168\u001b[0m         \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 169\u001b[0;31m             \u001b[0mdata_to_encode\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mdata\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0mcolumns\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    170\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    171\u001b[0m         \u001b[0;31m# validate prefixes and separator to avoid silently dropping cols\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/frame.py\u001b[0m in \u001b[0;36m__getitem__\u001b[0;34m(self, key)\u001b[0m\n\u001b[1;32m   4106\u001b[0m             \u001b[0;32mif\u001b[0m \u001b[0mis_iterator\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mkey\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   4107\u001b[0m                 \u001b[0mkey\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mlist\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mkey\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 4108\u001b[0;31m             \u001b[0mindexer\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mcolumns\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_get_indexer_strict\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mkey\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m\"columns\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;36m1\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   4109\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   4110\u001b[0m         \u001b[0;31m# take() does not accept boolean indexers\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/indexes/base.py\u001b[0m in \u001b[0;36m_get_indexer_strict\u001b[0;34m(self, key, axis_name)\u001b[0m\n\u001b[1;32m   6198\u001b[0m             \u001b[0mkeyarr\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mindexer\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mnew_indexer\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_reindex_non_unique\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mkeyarr\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   6199\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 6200\u001b[0;31m         \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_raise_if_missing\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mkeyarr\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mindexer\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0maxis_name\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   6201\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   6202\u001b[0m         \u001b[0mkeyarr\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mtake\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mindexer\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/indexes/base.py\u001b[0m in \u001b[0;36m_raise_if_missing\u001b[0;34m(self, key, indexer, axis_name)\u001b[0m\n\u001b[1;32m   6247\u001b[0m         \u001b[0;32mif\u001b[0m \u001b[0mnmissing\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   6248\u001b[0m             \u001b[0;32mif\u001b[0m \u001b[0mnmissing\u001b[0m \u001b[0;34m==\u001b[0m \u001b[0mlen\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mindexer\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 6249\u001b[0;31m                 \u001b[0;32mraise\u001b[0m \u001b[0mKeyError\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34mf\"None of [{key}] are in the [{axis_name}]\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   6250\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   6251\u001b[0m             \u001b[0mnot_found\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mlist\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mensure_index\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mkey\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0mmissing_mask\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mnonzero\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;36m0\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0munique\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mKeyError\u001b[0m: \"None of [Index(['Vehicle_Type', 'Crash_Type', 'Road_Surface_Condition'], dtype='object')] are in the [columns]\""
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Initialize Random Forest Classifier\n",
+        "rf_model = RandomForestClassifier(random_state=42)\n",
+        "\n",
+        "# Fit the model on training data\n",
+        "rf_model.fit(x_train, y_train)\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 356
+        },
+        "id": "oSbj6TWYe-JK",
+        "outputId": "90ad56c8-63f7-4273-f6ee-a7e0667162d9"
+      },
+      "execution_count": 41,
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "ValueError",
+          "evalue": "could not convert string to float: 'Urban'",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mValueError\u001b[0m                                Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-41-a9dfb4cadf45>\u001b[0m in \u001b[0;36m<cell line: 5>\u001b[0;34m()\u001b[0m\n\u001b[1;32m      3\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0;31m# Fit the model on training data\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 5\u001b[0;31m \u001b[0mrf_model\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mfit\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mx_train\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my_train\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/base.py\u001b[0m in \u001b[0;36mwrapper\u001b[0;34m(estimator, *args, **kwargs)\u001b[0m\n\u001b[1;32m   1471\u001b[0m                 )\n\u001b[1;32m   1472\u001b[0m             ):\n\u001b[0;32m-> 1473\u001b[0;31m                 \u001b[0;32mreturn\u001b[0m \u001b[0mfit_method\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mestimator\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m*\u001b[0m\u001b[0margs\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mkwargs\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   1474\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1475\u001b[0m         \u001b[0;32mreturn\u001b[0m \u001b[0mwrapper\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/ensemble/_forest.py\u001b[0m in \u001b[0;36mfit\u001b[0;34m(self, X, y, sample_weight)\u001b[0m\n\u001b[1;32m    361\u001b[0m             \u001b[0;32mraise\u001b[0m \u001b[0mValueError\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"sparse multilabel-indicator for y is not supported.\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    362\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 363\u001b[0;31m         X, y = self._validate_data(\n\u001b[0m\u001b[1;32m    364\u001b[0m             \u001b[0mX\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    365\u001b[0m             \u001b[0my\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/base.py\u001b[0m in \u001b[0;36m_validate_data\u001b[0;34m(self, X, y, reset, validate_separately, cast_to_ndarray, **check_params)\u001b[0m\n\u001b[1;32m    648\u001b[0m                 \u001b[0my\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mcheck_array\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0my\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0minput_name\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;34m\"y\"\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mcheck_y_params\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    649\u001b[0m             \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 650\u001b[0;31m                 \u001b[0mX\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mcheck_X_y\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mX\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mcheck_params\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    651\u001b[0m             \u001b[0mout\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mX\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    652\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/utils/validation.py\u001b[0m in \u001b[0;36mcheck_X_y\u001b[0;34m(X, y, accept_sparse, accept_large_sparse, dtype, order, copy, force_writeable, force_all_finite, ensure_2d, allow_nd, multi_output, ensure_min_samples, ensure_min_features, y_numeric, estimator)\u001b[0m\n\u001b[1;32m   1299\u001b[0m         )\n\u001b[1;32m   1300\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 1301\u001b[0;31m     X = check_array(\n\u001b[0m\u001b[1;32m   1302\u001b[0m         \u001b[0mX\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1303\u001b[0m         \u001b[0maccept_sparse\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0maccept_sparse\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/utils/validation.py\u001b[0m in \u001b[0;36mcheck_array\u001b[0;34m(array, accept_sparse, accept_large_sparse, dtype, order, copy, force_writeable, force_all_finite, ensure_2d, allow_nd, ensure_min_samples, ensure_min_features, estimator, input_name)\u001b[0m\n\u001b[1;32m    927\u001b[0m         \u001b[0;31m# Use the original dtype for conversion if dtype is None\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    928\u001b[0m         \u001b[0mnew_dtype\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mdtype_orig\u001b[0m \u001b[0;32mif\u001b[0m \u001b[0mdtype\u001b[0m \u001b[0;32mis\u001b[0m \u001b[0;32mNone\u001b[0m \u001b[0;32melse\u001b[0m \u001b[0mdtype\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 929\u001b[0;31m         \u001b[0marray\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0marray\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mastype\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mnew_dtype\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    930\u001b[0m         \u001b[0;31m# Since we converted here, we do not need to convert again later\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    931\u001b[0m         \u001b[0mdtype\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/generic.py\u001b[0m in \u001b[0;36mastype\u001b[0;34m(self, dtype, copy, errors)\u001b[0m\n\u001b[1;32m   6641\u001b[0m         \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   6642\u001b[0m             \u001b[0;31m# else, only a single dtype is given\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 6643\u001b[0;31m             \u001b[0mnew_data\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_mgr\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mastype\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mdtype\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mdtype\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcopy\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mcopy\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0merrors\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0merrors\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   6644\u001b[0m             \u001b[0mres\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_constructor_from_mgr\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mnew_data\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0maxes\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mnew_data\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0maxes\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   6645\u001b[0m             \u001b[0;32mreturn\u001b[0m \u001b[0mres\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m__finalize__\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mmethod\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;34m\"astype\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/internals/managers.py\u001b[0m in \u001b[0;36mastype\u001b[0;34m(self, dtype, copy, errors)\u001b[0m\n\u001b[1;32m    428\u001b[0m             \u001b[0mcopy\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;32mFalse\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    429\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 430\u001b[0;31m         return self.apply(\n\u001b[0m\u001b[1;32m    431\u001b[0m             \u001b[0;34m\"astype\"\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    432\u001b[0m             \u001b[0mdtype\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mdtype\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/internals/managers.py\u001b[0m in \u001b[0;36mapply\u001b[0;34m(self, f, align_keys, **kwargs)\u001b[0m\n\u001b[1;32m    361\u001b[0m                 \u001b[0mapplied\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mb\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mapply\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mf\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mkwargs\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    362\u001b[0m             \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 363\u001b[0;31m                 \u001b[0mapplied\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mgetattr\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mb\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mf\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m**\u001b[0m\u001b[0mkwargs\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    364\u001b[0m             \u001b[0mresult_blocks\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mextend_blocks\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mapplied\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mresult_blocks\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    365\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/internals/blocks.py\u001b[0m in \u001b[0;36mastype\u001b[0;34m(self, dtype, copy, errors, using_cow, squeeze)\u001b[0m\n\u001b[1;32m    756\u001b[0m             \u001b[0mvalues\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mvalues\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;36m0\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m:\u001b[0m\u001b[0;34m]\u001b[0m  \u001b[0;31m# type: ignore[call-overload]\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    757\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 758\u001b[0;31m         \u001b[0mnew_values\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mastype_array_safe\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mvalues\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mdtype\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcopy\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mcopy\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0merrors\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0merrors\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    759\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    760\u001b[0m         \u001b[0mnew_values\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mmaybe_coerce_values\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mnew_values\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/dtypes/astype.py\u001b[0m in \u001b[0;36mastype_array_safe\u001b[0;34m(values, dtype, copy, errors)\u001b[0m\n\u001b[1;32m    235\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    236\u001b[0m     \u001b[0;32mtry\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 237\u001b[0;31m         \u001b[0mnew_values\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mastype_array\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mvalues\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mdtype\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcopy\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mcopy\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    238\u001b[0m     \u001b[0;32mexcept\u001b[0m \u001b[0;34m(\u001b[0m\u001b[0mValueError\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mTypeError\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    239\u001b[0m         \u001b[0;31m# e.g. _astype_nansafe can fail on object-dtype of strings\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/dtypes/astype.py\u001b[0m in \u001b[0;36mastype_array\u001b[0;34m(values, dtype, copy)\u001b[0m\n\u001b[1;32m    180\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    181\u001b[0m     \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 182\u001b[0;31m         \u001b[0mvalues\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0m_astype_nansafe\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mvalues\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mdtype\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcopy\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mcopy\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    183\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    184\u001b[0m     \u001b[0;31m# in pandas we don't store numpy str dtypes, so convert to object\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/dtypes/astype.py\u001b[0m in \u001b[0;36m_astype_nansafe\u001b[0;34m(arr, dtype, copy, skipna)\u001b[0m\n\u001b[1;32m    131\u001b[0m     \u001b[0;32mif\u001b[0m \u001b[0mcopy\u001b[0m \u001b[0;32mor\u001b[0m \u001b[0marr\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mdtype\u001b[0m \u001b[0;34m==\u001b[0m \u001b[0mobject\u001b[0m \u001b[0;32mor\u001b[0m \u001b[0mdtype\u001b[0m \u001b[0;34m==\u001b[0m \u001b[0mobject\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    132\u001b[0m         \u001b[0;31m# Explicit copy, or required since NumPy can't view from / to object.\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 133\u001b[0;31m         \u001b[0;32mreturn\u001b[0m \u001b[0marr\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mastype\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mdtype\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcopy\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mTrue\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    134\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    135\u001b[0m     \u001b[0;32mreturn\u001b[0m \u001b[0marr\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mastype\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mdtype\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcopy\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mcopy\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mValueError\u001b[0m: could not convert string to float: 'Urban'"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Split the dataset into training (80%) and testing (20%) sets\n",
+        "x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)\n"
+      ],
+      "metadata": {
+        "id": "cZTjsv8Oe4Gt"
+      },
+      "execution_count": 40,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Define features and target variable\n",
+        "x = data.drop('Crash_Severity', axis=1)  # Replace with your actual severity column name\n",
+        "y = data['Crash_Severity']  # Ensure this is the correct column name for severity\n",
+        "\n",
+        "# Optional: Check class distribution for target variable\n",
+        "print(y.value_counts())\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "UDg_G6KLfOiP",
+        "outputId": "9af3469b-4772-4562-d6d3-bbe6850d8d1f"
+      },
+      "execution_count": 39,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Crash_Severity\n",
+            "Minor injury    100\n",
+            "Major injury    100\n",
+            "Fatal crash     100\n",
+            "Name: count, dtype: int64\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Display the DataFrame to check for non-numeric values\n",
+        "print(data.head())\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "elSXoP81eyI-",
+        "outputId": "5202c3f3-d5d9-44b6-fab4-347e46d39a24"
+      },
+      "execution_count": 42,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "  Crash_Severity  Vehicle_Speed  Crash_Time  Age  Gender  Number_of_Lanes  \\\n",
+            "0   Minor injury            107          11   27     NaN                2   \n",
+            "1   Minor injury             27          16   39     NaN                2   \n",
+            "2   Minor injury             87          14   42     NaN                3   \n",
+            "3   Minor injury             43           3   60     NaN                2   \n",
+            "4   Minor injury             72           8   70     NaN                3   \n",
+            "\n",
+            "   Lane_Width Road_Type  Alcohol_Consumption Seatbelt_Usage  Speed_Limit  \\\n",
+            "0    3.484386     Urban                  NaN             No           30   \n",
+            "1    3.293091     Rural                  NaN            Yes          110   \n",
+            "2    3.218911     Urban                  NaN             No           59   \n",
+            "3    3.113012     Rural                  NaN             No           73   \n",
+            "4    3.106580     Urban                  NaN            Yes           42   \n",
+            "\n",
+            "   Vehicle_Type_Heavy Vehicle  Vehicle_Type_T.W  Crash_Type_Rear-end  \\\n",
+            "0                        True             False                 True   \n",
+            "1                       False             False                 True   \n",
+            "2                       False             False                 True   \n",
+            "3                        True             False                 True   \n",
+            "4                       False              True                 True   \n",
+            "\n",
+            "   Road_Surface_Condition_Icy  Road_Surface_Condition_Wet  \n",
+            "0                        True                       False  \n",
+            "1                       False                       False  \n",
+            "2                       False                       False  \n",
+            "3                       False                        True  \n",
+            "4                       False                        True  \n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Replace 'Column_Name' with the actual name of your column\n",
+        "print(data['Urban'].unique())  # Check unique values in the problematic column\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 616
+        },
+        "id": "Zw0Hao_YfefG",
+        "outputId": "6895bffa-ea98-46e6-bd43-5f577efabf71"
+      },
+      "execution_count": 44,
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "KeyError",
+          "evalue": "'Urban'",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mKeyError\u001b[0m                                  Traceback (most recent call last)",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/indexes/base.py\u001b[0m in \u001b[0;36mget_loc\u001b[0;34m(self, key)\u001b[0m\n\u001b[1;32m   3804\u001b[0m         \u001b[0;32mtry\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 3805\u001b[0;31m             \u001b[0;32mreturn\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_engine\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mget_loc\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mcasted_key\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   3806\u001b[0m         \u001b[0;32mexcept\u001b[0m \u001b[0mKeyError\u001b[0m \u001b[0;32mas\u001b[0m \u001b[0merr\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32mindex.pyx\u001b[0m in \u001b[0;36mpandas._libs.index.IndexEngine.get_loc\u001b[0;34m()\u001b[0m\n",
+            "\u001b[0;32mindex.pyx\u001b[0m in \u001b[0;36mpandas._libs.index.IndexEngine.get_loc\u001b[0;34m()\u001b[0m\n",
+            "\u001b[0;32mpandas/_libs/hashtable_class_helper.pxi\u001b[0m in \u001b[0;36mpandas._libs.hashtable.PyObjectHashTable.get_item\u001b[0;34m()\u001b[0m\n",
+            "\u001b[0;32mpandas/_libs/hashtable_class_helper.pxi\u001b[0m in \u001b[0;36mpandas._libs.hashtable.PyObjectHashTable.get_item\u001b[0;34m()\u001b[0m\n",
+            "\u001b[0;31mKeyError\u001b[0m: 'Urban'",
+            "\nThe above exception was the direct cause of the following exception:\n",
+            "\u001b[0;31mKeyError\u001b[0m                                  Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-44-919570aeb576>\u001b[0m in \u001b[0;36m<cell line: 2>\u001b[0;34m()\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0;31m# Replace 'Column_Name' with the actual name of your column\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mdata\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'Urban'\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0munique\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m  \u001b[0;31m# Check unique values in the problematic column\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/frame.py\u001b[0m in \u001b[0;36m__getitem__\u001b[0;34m(self, key)\u001b[0m\n\u001b[1;32m   4100\u001b[0m             \u001b[0;32mif\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mcolumns\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mnlevels\u001b[0m \u001b[0;34m>\u001b[0m \u001b[0;36m1\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   4101\u001b[0m                 \u001b[0;32mreturn\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_getitem_multilevel\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mkey\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 4102\u001b[0;31m             \u001b[0mindexer\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mcolumns\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mget_loc\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mkey\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   4103\u001b[0m             \u001b[0;32mif\u001b[0m \u001b[0mis_integer\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mindexer\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   4104\u001b[0m                 \u001b[0mindexer\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;34m[\u001b[0m\u001b[0mindexer\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/pandas/core/indexes/base.py\u001b[0m in \u001b[0;36mget_loc\u001b[0;34m(self, key)\u001b[0m\n\u001b[1;32m   3810\u001b[0m             ):\n\u001b[1;32m   3811\u001b[0m                 \u001b[0;32mraise\u001b[0m \u001b[0mInvalidIndexError\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mkey\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 3812\u001b[0;31m             \u001b[0;32mraise\u001b[0m \u001b[0mKeyError\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mkey\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;32mfrom\u001b[0m \u001b[0merr\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   3813\u001b[0m         \u001b[0;32mexcept\u001b[0m \u001b[0mTypeError\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   3814\u001b[0m             \u001b[0;31m# If we have a listlike key, _check_indexing_error will raise\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mKeyError\u001b[0m: 'Urban'"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "o2iLTLZ5fh44"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
